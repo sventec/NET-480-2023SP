@@ -1,7 +1,7 @@
 Import-Module '480-utils' -Force
 
 # Test function to ensure correct import
-480Banner
+# 480Banner
 
 $conf = Get-480Config -ConfigPath "/home/reed/NET-480-2023SP/480.json"
 
