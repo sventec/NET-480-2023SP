@@ -1,0 +1,8 @@
+{
+    "vcenter_server": "vcenter.reed.local",
+    "vm_folder": "BASEVM",
+    "esxi_host": "192.168.7.44",
+    "default_network": "480-WAN",
+    "default_datastore": "datastore1-super31",
+    "base_snapshot_name": "Base"
+}
