@@ -1,4 +1,4 @@
-function 480Banner(){
+function 480Banner() {
     Write-Host "Hello Devops"
 }
 
@@ -12,22 +12,24 @@ function 480Connect {
     $conn = $global:DefaultVIServer
     if ($conn) {
         Write-Host -ForegroundColor Green ("Already Connected to: {0}" -f $conn)
-    } else {
+    }
+    else {
         $conn = Connect-VIServer -Server $Server
     }
 }
 
-function Get-480Config{
-    param(
+function Get-480Config {
+    param (
         # Path to config file
         [Parameter(Mandatory = $true)]
         [string]$ConfigPath
     )
 
-    if (Test-Path $ConfigPath){
+    if (Test-Path $ConfigPath) {
         $conf = Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json
         Write-Host -ForegroundColor Green "Using configuration at $ConfigPath"
-    } else {
+    }
+    else {
         $conf = $null
         Write-Host -ForegroundColor Yellow "No valid configuration at $ConfigPath found"
     }
@@ -43,13 +45,13 @@ function Select-VM {
     try {
         Write-Host "VMs in folder '${Folder}':"
         $vms = Get-VM -Location $Folder
-        for ($index=0; $index -lt $vms.Length; $index++) {
+        for ($index = 0; $index -lt $vms.Length; $index++) {
             Write-Host "[$index] $($vms[$index].name)"
         }
 
-        $indexQuery = {(Read-Host "Which VM index [x] should be used?") -as [int]}
+        $indexQuery = { (Read-Host "Which VM index [x] should be used?") -as [int] }
         $index = & $indexQuery
-        while ( ($index -isnot [int]) -or ($index -notin 0..$vms.Length) ){
+        while ( ($index -isnot [int]) -or ($index -notin 0..$vms.Length) ) {
             Write-Host -ForegroundColor Yellow "Index [x] must be a number between 1 and $($vms.Length)!"
             $index = & $indexQuery
         }
@@ -57,13 +59,14 @@ function Select-VM {
         $selectedVM = $vms[$index]
         Write-Host "Selected VM: $($selectedVM.name)"
         return $selectedVM
-    } catch {
+    }
+    catch {
         Write-Host -ForegroundColor Red "Invalid folder: $folder"
     }
 }
 
 function New-480LinkedClone {
-    param(
+    param (
         # VM to clone (VM object, not string)
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [string]$VM,
@@ -95,7 +98,7 @@ function New-480LinkedClone {
 }
 
 function New-480FullClone {
-    param(
+    param (
         # VM to clone (VM object, not string)
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [string]$VM,
@@ -141,10 +144,10 @@ function Set-480NetworkAdapter {
 
     $networks = Get-VirtualNetwork
     $adapters = Get-NetworkAdapter -VM $VM
-    $indexQuery = {(Read-Host "Which Adapter index [x] should be used?") -as [int]}
+    $indexQuery = { (Read-Host "Which Adapter index [x] should be used?") -as [int] }
     
     Write-Host "Available networks:"
-    for ($index=0; $index -lt $networks.Length; $index++) {
+    for ($index = 0; $index -lt $networks.Length; $index++) {
         Write-Host "[$index] $($networks[$index].name)"
     }
 
@@ -152,19 +155,20 @@ function Set-480NetworkAdapter {
         foreach ($adapter in $adapters) {
             Write-Host -ForegroundColor Green "Select network for adapter $($adapter.name):"
             $index = & $indexQuery
-            while ( ($index -isnot [int]) -or ($index -notin 0..$networks.Length) ){
+            while ( ($index -isnot [int]) -or ($index -notin 0..$networks.Length) ) {
                 Write-Host -ForegroundColor Yellow "Index [x] must be a number between 1 and $($networks.Length)!"
                 $index = & $indexQuery
             }
             Set-NetworkAdapter -NetworkAdapter $adapter -NetworkName $networks[$index] -Confirm:$false
         }
-    } catch {
+    }
+    catch {
         Write-Host -ForegroundColor Red "Error setting network adapter for VM $VM"
     }
 }
 
 function Set-480PowerState {
-    param(
+    param (
         # VM for power state modification
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [string]$VM,
@@ -175,12 +179,12 @@ function Set-480PowerState {
     )
 
     # If both flags are set, VM will be first powered on, THEN powered off. Not exclusive.
-    if ($PowerOn){
+    if ($PowerOn) {
         Start-VM -VM $VM -Confirm:$false
         Write-Host -ForegroundColor Green "Powered on VM"
     }
 
-    if ($PowerOff){
+    if ($PowerOff) {
         Stop-VM -VM $VM -Confirm:$false
         Write-Host -ForegroundColor Green "Powered off (stopped) VM"
     }

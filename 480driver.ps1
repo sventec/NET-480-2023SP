@@ -33,7 +33,7 @@ switch ($cloneType.ToUpper()) {
         Write-Host "Quit selected, exiting..."
         exit
     }
-    Default { Write-Host -ForegroundColor Yellow "No valid clone type selected!"}
+    Default { Write-Host -ForegroundColor Yellow "No valid clone type selected!" }
 }
 
 # $linkedClone = New-480LinkedClone -VM $vm -Name ("{0}.linked" -f $vm.name) -VMHost $conf.esxi_host -Datastore $conf.default_datastore -SnapshotName $conf.base_snapshot_name
