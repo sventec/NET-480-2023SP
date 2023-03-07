@@ -1,0 +1,24 @@
+---
+- name: VyOS Base Configuration
+  hosts: vyos
+  vars_prompt:
+    - name: password
+      prompt: Enter password for new VyOS configuration
+      private: true
+
+  tasks:
+    - name: Create password hash (as fact)
+      ansible.builtin.set_fact:
+        password_hash: "{{ password | password_hash('sha512') }}"
+    - name: Copy templated VyOS configuration
+      become: true
+      ansible.builtin.template:
+        src: files/config.boot.j2
+        dest: /config/config.boot
+        mode: "0775"
+        owner: root
+        group: "vyattacfg"
+    - name: Restart VyOS target
+      become: true
+      ansible.builtin.reboot:
+        reboot_timeout: 1

@@ -189,3 +189,37 @@ function Set-480PowerState {
         Write-Host -ForegroundColor Green "Powered off (stopped) VM"
     }
 }
+
+function Get-IP {
+    param (
+        # VM for retrieval of networking information
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [string]$VM
+    )
+
+    Write-Host -ForegroundColor Green "Network information for VM with name $VM"
+    $VMObj = Get-VM -Name $VM
+    $VMObj.Guest.IPAddress
+    Write-Host -ForegroundColor Green "MAC Addresses for VM with name $VM"
+    $VMObj | Get-NetworkAdapter | Select -ExpandProperty 'MacAddress'
+}
+
+function New-Network {
+    param (
+        # Name of new network
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter(Mandatory = $true)]
+        [string]$VMHost
+    )
+
+    try {
+        $vswitch = New-VirtualSwitch -Name $Name -VMHost $VMHost
+        New-VirtualPortGroup -VirtualSwitch $vswitch -Name $Name
+
+        Write-Host -ForegroundColor Green "Created $Name"
+    }
+    catch {
+        Write-Host -ForegroundColor Red "Failed to create $Name"
+    }
+}
