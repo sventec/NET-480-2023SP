@@ -1,0 +1,54 @@
+---
+- name: Rocky post-install configuration
+  hosts: rocky
+  tasks:
+    - name: Prepare SSH
+      block:
+      - name: Ensure .ssh directory is present
+        ansible.builtin.file:
+          path: "/home/{{ ansible_user }}/.ssh"
+          state: directory
+          mode: 0700
+      - name: Create authorized_keys
+        ansible.builtin.file:
+          path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+          state: touch
+          mode: 0644
+      - name: Append public key to authorized_keys
+        ansible.builtin.blockinfile:
+          block: "{{ public_key }}"
+          dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+    - name: Execute tasks as root
+      block:
+        - name: Create sudoers drop-in file
+          ansible.builtin.file:
+            path: /etc/sudoers.d/480
+            state: touch
+            mode: 0440
+        - name: Add entry to sudoers drop-in file
+          ansible.builtin.blockinfile:
+            dest: /etc/sudoers.d/480
+            block: "{{ ansible_user }}  ALL=(ALL) NOPASSWD: ALL"
+        - name: Set hostname
+          ansible.builtin.hostname:
+            name: "{{ hostname }}"
+        - name: Add host to hostsfile
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            line: "127.0.1.1  {{ hostname }}"
+        - name: Configure network via nmcli
+          community.general.nmcli:
+            conn_name: "{{ device }}"
+            ip4: "{{ lan_ip }}/24"
+            gw4: "{{ gateway }}"
+            state: present
+            type: ethernet
+            dns4:
+              - "{{ name_server }}"
+              - "{{ gateway }}"
+            method4: manual
+        - name: Restart the VM
+          ansible.builtin.shell: "sleep 5 && reboot now"
+          async: 1
+          poll: 0
+      become: true

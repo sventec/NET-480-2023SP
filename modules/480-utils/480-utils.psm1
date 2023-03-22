@@ -197,11 +197,23 @@ function Get-IP {
         [string]$VM
     )
 
-    Write-Host -ForegroundColor Green "Network information for VM with name $VM"
-    $VMObj = Get-VM -Name $VM
-    $VMObj.Guest.IPAddress
-    Write-Host -ForegroundColor Green "MAC Addresses for VM with name $VM"
-    $VMObj | Get-NetworkAdapter | Select -ExpandProperty 'MacAddress'
+    # Write-Host -ForegroundColor Green "Network information for VM with name $VM"
+    # $VMObj = Get-VM -Name $VM
+    # $VMObj.Guest.IPAddress
+    # Write-Host -ForegroundColor Green "MAC Addresses for VM with name $VM"
+    # $VMObj | Get-NetworkAdapter | Select -ExpandProperty 'MacAddress'
+
+    $VMObjs = Get-VM -Name $VM
+
+    foreach ($VMObj in $VMObjs) {
+        $mac = $VMObj | Get-NetworkAdapter | Select-Object -ExpandProperty 'MacAddress'
+
+        # Credit to LucD for oneliner to extract plaintext value of property:
+        # https://communities.vmware.com/t5/VMware-PowerCLI-Discussions/How-do-i-get-MAC-address-and-IP-in-a-format-i-can-use-in-a/m-p/1300063/highlight/true#M38623
+        $ip = $VMObj | Select-Object @{N='IP Address';E={@($_.guest.IPAddress[0])}} | Select-Object -ExpandProperty 'IP Address'
+
+        Write-Host "$ip host=$VMObj mac=$mac"
+    }
 }
 
 function New-Network {

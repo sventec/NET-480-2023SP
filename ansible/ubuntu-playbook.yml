@@ -1,0 +1,61 @@
+---
+- name: Ubuntu post-install configuration
+  hosts: ubuntu
+  tasks:
+    - name: Prepare SSH
+      block:
+      - name: Ensure .ssh directory is present
+        ansible.builtin.file:
+          path: "/home/{{ ansible_user }}/.ssh"
+          state: directory
+          mode: 0700
+      - name: Create authorized_keys
+        ansible.builtin.file:
+          path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+          state: touch
+          mode: 0644
+      - name: Append public key to authorized_keys
+        ansible.builtin.blockinfile:
+          block: "{{ public_key }}"
+          dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+    - name: Execute tasks as root
+      block:
+        - name: Create sudoers drop-in file
+          ansible.builtin.file:
+            path: /etc/sudoers.d/480
+            state: touch
+            mode: 0440
+        - name: Add entry to sudoers drop-in file
+          ansible.builtin.blockinfile:
+            dest: /etc/sudoers.d/480
+            block: "{{ ansible_user }}  ALL=(ALL) NOPASSWD: ALL"
+        - name: Set hostname
+          ansible.builtin.hostname:
+            name: "{{ hostname }}"
+        - name: Add host to hostsfile
+          ansible.builtin.lineinfile:
+            path: /etc/hosts
+            line: "127.0.1.1  {{ hostname }}"
+        - name: Remove old netplan file
+          ansible.builtin.file:
+            path: /etc/netplan/00-installer-config.yaml
+            state: absent
+        - name: Configure network via netplan file
+          ansible.builtin.template:
+            src: files/ubuntu-netplan.yml.j2
+            dest: /etc/netplan/99-blue1-config.yaml
+            owner: root
+            group: root
+            mode: u=rw,g=r,o=r
+          notify:
+            - Apply netplan
+        - name: Restart the VM
+          ansible.builtin.shell: "sleep 5 && reboot now"
+          async: 1
+          poll: 0
+      become: true
+
+  handlers:
+    - name: Apply netplan
+      ansible.builtin.shell: "netplan apply"
+      become: true

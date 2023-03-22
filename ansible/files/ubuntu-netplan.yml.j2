@@ -1,0 +1,12 @@
+network:
+  version: 2
+  ethernets:
+    {{ device }}:
+      addresses:
+        - {{ lan_ip }}/{{ prefix }}
+      nameservers:
+        search: [{{ domain }}]
+        addresses: [{{ name_server }}, {{ gateway }}]
+      routes:
+        - to: default
+          via: {{ gateway }}
