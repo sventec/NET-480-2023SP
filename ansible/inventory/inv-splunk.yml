@@ -1,0 +1,22 @@
+splunk:
+  hosts:
+  children:
+    servers:
+      hosts:
+        10.0.5.150:
+          hostname: splunk-server
+      vars:
+        splunk_home: /opt/splunk
+    agents:
+      hosts:
+        10.0.5.30:
+          hostname: ubuntu-1
+      vars:
+        splunk_home: /opt/splunkforwarder
+    
+  vars:
+    ansible_user: reed
+    splunk_admin_user: splunk-adm
+    splunk_server_file: splunk-9.0.4.1-419ad9369127-linux-2.6-amd64.deb
+    splunk_forwarder_file: splunkforwarder-9.0.4-de405f4a7979-linux-2.6-amd64.deb
+

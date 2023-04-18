@@ -235,3 +235,31 @@ function New-Network {
         Write-Host -ForegroundColor Red "Failed to create $Name"
     }
 }
+
+function Set-WindowsIP {
+    param (
+        # VM Name
+        [Parameter(Mandatory=$true)]
+        [string]$Name,
+        # IP Address, with mask e.g. 10.0.0.1/24
+        [Parameter(Mandatory=$true)]
+        [string]$IPAddress,
+        # Default Gateway
+        [Parameter(Mandatory=$true)]
+        [string]$Gateway,
+        # Primary DNS Server
+        [Parameter(Mandatory=$true)]
+        [string]$DNS,
+        # Windows Interface Name
+        [Parameter]
+        [string]$Interface = "Ethernet0"
+    )
+
+    $ChangeIP = @"
+    netsh interface ip set address name="$($Interface)" source=static address={0} gateway={1}
+    netsh interface ip set dnsservers name="$($Interface)" source=static address={2} register=primary
+"@ -f $IPAddress, $Gateway, $DNS
+    
+    $Credential = Get-Credential -Message "Enter a VM guest account's credentials"
+    Invoke-VMScript -VM $Name -ScriptText $ChangeIP -GuestCredential $Credential
+}

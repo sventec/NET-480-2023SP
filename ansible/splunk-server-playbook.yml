@@ -1,0 +1,60 @@
+# Usage: ansible-playbook -i inventory/inv-splunk.yml splunk-server-playbook.yml
+---
+- name: Splunk server provisioning, Ubuntu
+  hosts: servers
+  vars_prompt:
+    - name: password
+      prompt: Enter password for Splunk administrator
+      private: true
+  tasks:
+  - name: Hash password as fact
+    ansible.builtin.set_fact:
+      password_hash: "{{ password | password_hash('sha512') }}"
+  - name: Create service user
+    ansible.builtin.user:
+      name: "{{ splunk_admin_user }}"
+      group: sudo
+      state: present
+      shell: /bin/bash
+      password: "{{ password_hash }}"
+    become: true
+  - name: Transfer Splunk .deb file
+    ansible.builtin.copy:
+      src: "files/splunk/{{ splunk_server_file }}"
+      dest: "/home/{{ ansible_user }}/splunk.deb"
+  - name: Install Splunk server .deb
+    ansible.builtin.apt:
+      deb: "/home/{{ ansible_user }}/splunk.deb"
+    become: true
+  - name: Start Splunk for first-time setup
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk start --no-prompt --answer-yes --accept-license"
+    become: true
+  - name: Stop Splunk
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk stop"
+    become: true
+  # - name: Hash Splunk admin password
+  #   ansible.builtin.shell: "{{ splunk_home }}/bin/splunk hash-passwd {{ password }}"
+  #   register: splunk_hash_command
+  #   become: true
+  # - name: Set Splunk admin password hash fact
+  #   ansible.builtin.set_fact:
+  #     splunk_hash: "{{ splunk_hash_command.stdout }}"
+  - name: Transfer Splunk user seed (username and password) file
+    ansible.builtin.template:
+      src: "files/splunk/user-seed.conf.j2"
+      dest: "{{ splunk_home }}/etc/system/local/user-seed.conf"
+      owner: splunk
+      group: splunk
+      mode: u=rw,g=r
+    become: true
+  - name: Transfer Splunk inputs file
+    ansible.builtin.copy:
+      src: "files/splunk/inputs.conf"
+      dest: "{{ splunk_home }}/etc/system/local/inputs.conf"
+      owner: splunk
+      group: splunk
+      mode: u=rw,g=r,o=r
+    become: true
+  - name: Start Splunk for normal operation
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk start"
+    become: true

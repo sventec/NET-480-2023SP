@@ -1,0 +1,42 @@
+---
+- name: Splunk agent/forwarder provisioning, Ubuntu
+  hosts: agents
+  vars_prompt:
+    - name: password
+      prompt: Enter password for Splunk administrator
+      private: true
+  tasks:
+  - name: Hash password as fact
+    ansible.builtin.set_fact:
+      password_hash: "{{ password | password_hash('sha512') }}"
+  - name: Transfer Splunk .deb file
+    ansible.builtin.copy:
+      src: "files/splunk/{{ splunk_forwarder_file }}"
+      dest: "/home/{{ ansible_user }}/splunk.deb"
+  - name: Install Splunk forwarder
+    ansible.builtin.apt:
+      deb: "/home/{{ ansible_user }}/splunk.deb"
+    become: true
+  - name: Transfer Splunk user seed (username and password) file
+    ansible.builtin.template:
+      src: "files/splunk/user-seed.conf.j2"
+      dest: "{{ splunk_home }}/etc/system/local/user-seed.conf"
+      owner: splunk
+      group: splunk
+      mode: u=rw,g=r
+    become: true
+  - name: Start Splunk to accept license
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk start --no-prompt --answer-yes --accept-license"
+    become: true
+  - name: Stop Splunk
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk stop"
+    become: true
+  - name: Add forwarder server
+    ansible.builtin.shell: " {{ splunk_home }}/bin/splunk add forward-server 10.0.5.150:9997 -auth admin:{{ password }}"
+    become: true
+  - name: Add log monitor
+    ansible.builtin.shell: " {{ splunk_home }}/bin/splunk add monitor /var/log -auth admin:{{ password }}"
+    become: true
+  - name: Start Splunk
+    ansible.builtin.shell: "{{ splunk_home }}/bin/splunk start"
+    become: true
