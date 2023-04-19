@@ -1,0 +1,9 @@
+dc:
+  hosts:
+    10.0.5.5:
+      hostname: dc-blue1
+  
+  vars:
+    ansible_user: Administrator
+    ansible_connection: ssh
+    ansible_shell_type: powershell

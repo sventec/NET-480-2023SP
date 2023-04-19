@@ -1,0 +1,51 @@
+---
+- name: Blue DC Configuration
+  hosts: dc
+  vars_prompt:
+    - name: local_admin_password
+      prompt: Enter password for local account Administrator
+      private: true
+    - name: dsrm_password
+      prompt: Enter password for AD DSRM
+      private: true
+
+  tasks:
+    - name: Set hostname
+      ansible.windows.win_hostname:
+        name: "{{ hostname }}"
+      register: restart
+    - name: Change local Administrator password
+      ansible.windows.win_user:
+        name: "{{ ansible_user }}"
+        update_password: always
+        password_never_expires: true
+        password: "{{ local_admin_password }}"
+    - name: Reboot if required
+      ansible.windows.win_reboot:
+      when: restart.reboot_required
+    - name: Install ADDS
+      ansible.windows.win_feature:
+        name: AD-Domain-Services
+        include_management_tools: true
+        state: present
+    - name: Create Blue1 Domain
+      ansible.windows.win_domain:
+        dns_domain_name: blue1.local
+        safe_mode_password: "{{ dsrm_password }}"
+      register: domain_install
+    - name: Reboot if required
+      ansible.windows.win_reboot:
+      when: domain_install.reboot_required
+    - name: Create nested OU structure
+      community.windows.win_domain_ou:
+        name: "{{ item.name }}"
+        path: "{{ item.path }}"
+        state: present
+      delegate_to: "{{ inventory_hostname }}"
+      loop:
+        - { name: "blue1", path: "DC=blue1,DC=local" }
+        - { name: "Accounts", path: "OU=blue1,DC=blue1,DC=local" }
+        - { name: "Groups", path: "OU=Accounts,OU=blue1,DC=blue1,DC=local" }
+        - { name: "Computers", path: "OU=blue1,DC=blue1,DC=local" }
+        - { name: "Servers", path: "OU=Computers,OU=blue1,DC=blue1,DC=local" }
+        - { name: "Workstations", path: "OU=Computers,OU=blue1,DC=blue1,DC=local" }
