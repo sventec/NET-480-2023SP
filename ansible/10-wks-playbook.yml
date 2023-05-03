@@ -1,0 +1,21 @@
+# ansible-playbook -i inventory/inv-windows.yml 10-wks-playbook.yml -k
+---
+- name: Blue Wks Configuration
+  hosts: wks
+  vars_prompt:
+    - name: admin_password
+      prompt: Enter password for Domain Administrator
+      private: true
+  tasks:
+    - name: Join domain
+      ansible.windows.win_domain_membership:
+        dns_domain_name: blue1.local
+        domain_admin_user: "{{ admin_user }}"
+        domain_admin_password: "{{ admin_password }}"
+        state: domain
+        domain_ou_path: "OU=Workstations,OU=Computers,OU=blue1,DC=blue1,DC=local"
+        hostname: "{{ hostname }}"
+      register: restart
+    - name: Reboot if required
+      ansible.windows.win_reboot:
+      when: restart.reboot_required

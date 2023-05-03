@@ -1,0 +1,60 @@
+# ansible-playbook -i inventory/inv-windows.yml 10-fs-playbook.yml -k
+---
+- name: Milestone 10 - File Services Setup
+  hosts: fileserver
+  vars_prompt:
+    - name: local_admin_password
+      prompt: Enter password for local account Administrator
+      private: true
+    - name: domain_admin_password
+      prompt: Enter password for a blue1 domain Administrator
+      private: true
+  tasks:
+    # - name: Set hostname
+    #   ansible.windows.win_hostname:
+    #     name: "{{ hostname }}"
+    #   register: restart
+    - name: Change local Administrator password
+      ansible.windows.win_user:
+        name: "{{ ansible_user }}"
+        update_password: always
+        password_never_expires: true
+        password: "{{ local_admin_password }}"
+    # - name: Reboot if required
+    #   ansible.windows.win_reboot:
+    #   when: restart.reboot_required
+    - name: Join BLUE1 domain
+      ansible.windows.win_domain_membership:
+        dns_domain_name: blue1.local
+        hostname: "{{ hostname }}"
+        domain_admin_user: "{{ admin_user }}"
+        domain_admin_password: "{{ domain_admin_password }}"
+        domain_ou_path: "OU=Servers,OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: domain
+      register: domain_state
+    - name: Reboot if required
+      ansible.windows.win_reboot:
+      when: domain_state.reboot_required
+    - name: Get list of users
+      community.general.read_csv:
+        path: files/users.csv
+      register: users
+      delegate_to: localhost
+      vars:
+        ansible_shell_type:
+    - name: Parse list of AD groups from userlist
+      ansible.builtin.set_fact:
+        ad_groups: "{{ users.list | map(attribute='group') | list | unique }}"
+    - name: Create folders for each share
+      ansible.windows.win_file:
+        path: "C:\\Shares\\{{ item }}"
+        state: directory
+      loop: "{{ ad_groups }}"
+    - name: Create file share for each group
+      ansible.windows.win_share:
+        name: "{{ item }}_share"
+        change: "{{ item }}"
+        path: "C:\\Shares\\{{ item }}"
+        description: "Share for {{ item }} group"
+        state: present
+      loop: "{{ ad_groups }}"

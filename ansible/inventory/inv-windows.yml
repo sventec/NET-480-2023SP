@@ -1,7 +1,19 @@
-dc:
-  hosts:
-    10.0.5.5:
-      hostname: dc-blue1
+all:
+  children:
+    dc:
+      hosts:
+        10.0.5.5:
+          hostname: dc-blue1
+    fileserver:
+      hosts:
+        10.0.5.6:
+          hostname: fs-blue1
+          admin_user: Administrator
+    wks:
+      hosts:
+        10.0.5.84:
+          hostname: wks-blue1
+          admin_user: Administrator
   
   vars:
     ansible_user: Administrator

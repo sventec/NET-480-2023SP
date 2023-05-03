@@ -1,0 +1,42 @@
+# ansible-playbook -i inventory/inv-windows.yml 10-csv-playbook.yml -k
+---
+- name: Milestone 10 - Users and Groups from CSV
+  hosts: dc
+  tasks:
+    - name: Read user CSV
+      community.general.read_csv:
+        path: files/users.csv
+      register: users
+      delegate_to: localhost
+      vars:
+        ansible_shell_type:
+    # Password generation modified from: https://stackoverflow.com/a/63454813
+    - name: Generate random passwords
+      vars:
+        user_entry: "{{ item | combine({'password': lookup('password', '/dev/null length=12')}) }}"
+      ansible.builtin.set_fact:
+        users_with_pass: "{{ users_with_pass | default([]) + [user_entry] }}"
+      loop: "{{ users.list }}"
+    - name: Show generated passwords
+      ansible.builtin.debug:
+        var: users_with_pass
+    - name: Create group OUs
+      community.windows.win_domain_group:
+        name: "{{ item }}"
+        state: present
+        path: "OU=Groups,OU=Accounts,OU=blue1,DC=blue1,DC=local"
+        scope: global
+      loop: "{{ users_with_pass | map(attribute='group') | unique }}"
+      delegate_to: "{{ inventory_hostname }}"
+    - name: Create users
+      community.windows.win_domain_user:
+        name: "{{ item.username }}"
+        state: present
+        password: "{{ item.password }}"
+        enabled: true
+        groups:
+          - "{{ item.group }}"
+          - "Domain Users"
+        path: "OU=Accounts,OU=blue1,DC=blue1,DC=local"
+      loop: "{{ users_with_pass }}"
+      delegate_to: "{{ inventory_hostname }}"
