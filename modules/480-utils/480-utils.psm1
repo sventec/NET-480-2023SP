@@ -251,13 +251,13 @@ function Set-WindowsIP {
         [Parameter(Mandatory=$true)]
         [string]$DNS,
         # Windows Interface Name
-        [Parameter]
-        [string]$Interface = "Ethernet0"
+        [Parameter(Mandatory=$true)]
+        [string]$Interface
     )
 
     $ChangeIP = @"
-    netsh interface ip set address name="$($Interface)" source=static address={0} gateway={1}
-    netsh interface ip set dnsservers name="$($Interface)" source=static address={2} register=primary
+    netsh interface ip set address name="$Interface" source=static address={0} gateway={1}
+    netsh interface ip set dnsservers name="$Interface" source=static address={2} register=primary
 "@ -f $IPAddress, $Gateway, $DNS
     
     $Credential = Get-Credential -Message "Enter a VM guest account's credentials"
